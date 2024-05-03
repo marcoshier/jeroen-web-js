@@ -1,42 +1,131 @@
-import kotlinx.browser.document
 import kotlinx.browser.window
 import org.openrndr.applicationAsync
 import org.openrndr.color.ColorRGBa
-import org.openrndr.color.rgb
+import org.openrndr.draw.*
+import org.openrndr.extra.fx.Post
+import org.openrndr.extra.fx.distort.Perturb
+import org.openrndr.extra.imageFit.imageFit
+import org.openrndr.kartifex.Vec
+import org.openrndr.math.*
 import org.openrndr.shape.Rectangle
-import org.w3c.dom.HTMLCanvasElement
-import kotlin.math.cos
+import org.w3c.files.FileList
+import org.w3c.files.FileReader
+import kotlin.math.pow
 
 suspend fun main() {
-
-    val canvas = document.getElementById("openrndr-canvas") as HTMLCanvasElement
-
-    fun patchCanvas() {
-        val ctx = canvas.toDataURL()
-        console.log(ctx)
-    }
-
     applicationAsync {
 
+        val windowRef = window
+        val statusElement = windowRef.document.getElementById("status")!!
 
-
-        window.addEventListener("resize", {
-            patchCanvas()
-        }, false)
 
         program {
 
-            val rectangles = (0..20).map {
-                Rectangle(0.0, 0.0, width * 1.0, height * 1.0).offsetEdges(-20.0 * it)
+            val imgs = (0..14).map { loadImageSuspend("images/$it.jpg") }
+
+            val accelerometer = object {
+                var beta = 0.0
+                    set(value) {
+                        field = field * 0.97 + value * 0.03
+                    }
+                var gamma = 0.0
+                    set(value) {
+                        field = field * 0.97 + value * 0.03
+                    }
             }
 
+            val rectangles = (0..14).map {
+                drawer.bounds.scaledBy(0.9.pow(it))
+            }
+
+            var currentMode = 1
+
+            var movingRectangles = rectangles
+            var cidx = -1
+            var mousePos = Vector2.ZERO
+            mouse.buttonDown.listen {
+                statusElement.innerHTML = "DOWN"
+                mousePos = it.position
+
+                val targetRect = movingRectangles.withIndex().filter { mousePos in it.value }.maxByOrNull { it.index }
+                cidx = targetRect?.index ?: -1
+            }
+
+
+            //val font = loadFont("data/fonts/default.otf", 25.0)
+
+            val p = Perturb().apply {
+                this.gain = 0.01
+                this.radius = 1.4
+                this.bicubicFiltering = true
+            }
+            extend(Post()) {
+                post { input, output ->
+                    p.apply(input, output)
+                }
+            }
             extend {
-                val a = rgb("#ff0000")
-                drawer.clear(a)
+
+                p.phase = seconds * 0.03
+
+                val accelElement = windowRef.document.getElementById("accel")!!
+
+                accelerometer.beta = accelElement.getAttribute("data-beta")!!.toDouble()
+                accelerometer.gamma = accelElement.getAttribute("data-gamma")!!.toDouble()
+                currentMode = accelElement.getAttribute("data-mode")!!.toInt()
+
+                drawer.clear(ColorRGBa.WHITE)
                 drawer.fill = ColorRGBa.WHITE
-                drawer.rectangles(rectangles)
+
+
+                val xOff = map(-40.0, 40.0, 0.0, 1.0, accelerometer.gamma, true)
+                val yOff = map(120.0, 60.0, 0.0, 1.0, accelerometer.beta, true)
+
+                drawer.stroke = ColorRGBa.BLACK
+                drawer.fill = ColorRGBa.WHITE
+
+                val uv = Vector2(xOff, yOff)
+
+                movingRectangles = rectangles.map {
+                    rectangleFromUV(
+                        Vector2.ONE - uv,
+                        drawer.bounds,
+                        it.width,
+                        it.height
+                    )
+                }
+
+
+                drawer.fill = ColorRGBa.WHITE
+                if (currentMode == 1) {
+                    for ((i, mrect) in movingRectangles.withIndex()) {
+                        drawer.fill = if(cidx == i) ColorRGBa.RED else ColorRGBa.WHITE
+                        drawer.rectangle(mrect)
+                        if (i == cidx) drawer.imageFit(imgs[i], mrect)
+                        drawer.shadeStyle = null
+                    }
+                }
+                if (currentMode == 2)  {
+                    for ((i, mrect) in movingRectangles.withIndex()) {
+                        drawer.fill = if(cidx == i) ColorRGBa.RED else ColorRGBa.WHITE
+                        drawer.imageFit(imgs[i], mrect)
+                        drawer.shadeStyle = null
+                    }
+                }
+
+
+
+
             }
         }
     }
 
+}
+
+fun Rectangle.uv(pos: Vector2): Vector2 {
+    return pos.map(corner, corner + dimensions, Vector2.ZERO, Vector2.ONE, true)
+}
+
+fun rectangleFromUV(uv: Vector2, outer: Rectangle, width: Double, height: Double) : Rectangle {
+    return Rectangle(outer.position(uv) - Vector2(width, height) * uv, width, height)
 }

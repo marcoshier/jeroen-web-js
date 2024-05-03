@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.plugin.extraProperties
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.kotlin.js)
@@ -8,7 +11,7 @@ version = "1.0-SNAPSHOT"
 
 /*  Which additional multiplatform (ORX) libraries should be added to this project. */
 val orxFeatures = setOf<String>(
-//    "orx-camera",
+    "orx-camera",
 //    "orx-color",
 //    "orx-compositor",
 //    "orx-easing",

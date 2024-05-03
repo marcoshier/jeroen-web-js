@@ -16,10 +16,65 @@
             width: 100%;
             height: 100%;
         }
+        #trigger {
+            position: absolute;
+            top: 0;
+            left: 0;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background: transparent;
+        }
+
+        #buttons {
+            position: fixed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            bottom: 0;
+            height: 5vh;
+            width: 100vw;
+        }
     </style>
 </head>
 <body>
+<div id="accel" data-beta="0" data-gamma="0" data-mode="1"></div>
+<p id="status"></p>
+<div id="trigger" onclick="permission()"></div>
+<div id="buttons">
+    <button onclick="mode1()" type="button">Mode 1</button>
+    <button onclick="mode2()" type="button">Mode 2</button>
+</div>
 <canvas id="openrndr-canvas"></canvas>
 <script src="openrndr-program.js"></script>
+<script>
+    let el = document.getElementById("accel");
+
+    function mode1() {
+        el.setAttribute('data-mode', 1);
+    }
+    function mode2() {
+        el.setAttribute('data-mode', 2);
+    }
+
+    function permission(){
+        DeviceOrientationEvent.requestPermission()
+            .then(response => {
+
+
+                if (response == 'granted') {
+
+                    window.addEventListener('deviceorientation', (e) => {
+
+                        el.setAttribute('data-beta', e.beta);
+                        el.setAttribute('data-gamma', e.gamma);
+                    })
+                }
+            })
+            .catch(console.error)
+    }
+
+</script>
 </body>
 </html>
