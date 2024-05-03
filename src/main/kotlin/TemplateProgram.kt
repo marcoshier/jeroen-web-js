@@ -5,23 +5,28 @@ import org.openrndr.draw.*
 import org.openrndr.extra.fx.Post
 import org.openrndr.extra.fx.distort.Perturb
 import org.openrndr.extra.imageFit.imageFit
-import org.openrndr.kartifex.Vec
 import org.openrndr.math.*
 import org.openrndr.shape.Rectangle
-import org.w3c.files.FileList
-import org.w3c.files.FileReader
+import org.openrndr.webgl.ColorBufferWebGLCors
+import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.Image
+import org.w3c.dom.get
 import kotlin.math.pow
+
 
 suspend fun main() {
     applicationAsync {
 
         val windowRef = window
-        val statusElement = windowRef.document.getElementById("status")!!
+        //val statusElement = windowRef.document.getElementById("status")!!
 
 
         program {
+            val canvas = windowRef.document.getElementsByTagName("canvas")[0] as HTMLCanvasElement
+            val ctx = canvas.getContext("webgl2") as WebGL2RenderingContext
+            console.log("context $ctx")
 
-            val imgs = (0..14).map { loadImageSuspend("images/$it.jpg") }
+            val imgs = (0..14).map { ColorBufferWebGLCors.fromUrlSuspend(ctx, "images/$it.jpg")}
 
             val accelerometer = object {
                 var beta = 0.0
@@ -44,7 +49,7 @@ suspend fun main() {
             var cidx = -1
             var mousePos = Vector2.ZERO
             mouse.buttonDown.listen {
-                statusElement.innerHTML = "DOWN"
+                //statusElement.innerHTML = "DOWN"
                 mousePos = it.position
 
                 val targetRect = movingRectangles.withIndex().filter { mousePos in it.value }.maxByOrNull { it.index }
