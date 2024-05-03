@@ -92,8 +92,9 @@ suspend fun main() {
                 val uv = Vector2(xOff, yOff)
 
                 movingRectangles = rectangles.map {
+                    val invuv = Vector2.ONE - uv
                     rectangleFromUV(
-                        Vector2.ONE - uv,
+                        invuv.copy(x = 1.0 - invuv.x),
                         drawer.bounds,
                         it.width,
                         it.height

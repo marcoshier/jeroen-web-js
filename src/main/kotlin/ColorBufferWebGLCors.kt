@@ -77,7 +77,7 @@ class ColorBufferWebGLCors(
             if (levels > 1) {
                 //context.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAX_LEVEL, levels - 1)
             }
-            val (internalFormat, glformat, gltype) = internalFormat(format, type)
+            val (internalFormat, glformat, gltype) = internalFormat2(format, type)
 
             if (!type.compressed) {
                 for (level in 0 until levels) {
@@ -286,7 +286,7 @@ class ColorBufferWebGLCors(
                 tex,
                 tflip(tey),
                 GL.COLOR_BUFFER_BIT,
-                filter.toGLFilter()
+                filter.toGLFilter2()
             )
             context.bindFramebuffer(WebGL2RenderingContext.READ_FRAMEBUFFER, null)
             context.checkErrors("blitFramebuffer $this $target")
@@ -381,8 +381,8 @@ class ColorBufferWebGLCors(
                 y,
                 width,
                 height,
-                sourceFormat.glFormat(),
-                sourceType.glType(),
+                sourceFormat.glFormat2(),
+                sourceType.glType2(),
                 source
             )
         } else {
@@ -393,7 +393,7 @@ class ColorBufferWebGLCors(
                 y,
                 width,
                 height,
-                sourceType.glType(),
+                sourceType.glType2(),
                 source
             )
         }
@@ -427,8 +427,8 @@ class ColorBufferWebGLCors(
 
     override fun filter(filterMin: MinifyingFilter, filterMag: MagnifyingFilter) {
         bind(0)
-        context.texParameteri(target, GL.TEXTURE_MIN_FILTER, filterMin.toGLFilter())
-        context.texParameteri(target, GL.TEXTURE_MAG_FILTER, filterMag.toGLFilter())
+        context.texParameteri(target, GL.TEXTURE_MIN_FILTER, filterMin.toGLFilter2())
+        context.texParameteri(target, GL.TEXTURE_MAG_FILTER, filterMag.toGLFilter2())
     }
 
     override var wrapU: WrapMode
@@ -444,7 +444,7 @@ class ColorBufferWebGLCors(
         } as RenderTargetWebGL
 
         writeTarget.bind()
-        val floatColorData = float32Array(color.r.toFloat(), color.g.toFloat(), color.b.toFloat(), color.alpha.toFloat())
+        val floatColorData = float32Array2(color.r.toFloat(), color.g.toFloat(), color.b.toFloat(), color.alpha.toFloat())
         context.clearBufferfv(WebGL2RenderingContext.COLOR, 0, floatColorData)
         writeTarget.unbind()
 
@@ -457,7 +457,7 @@ class ColorBufferWebGLCors(
     }
 }
 
-internal fun MinifyingFilter.toGLFilter(): Int {
+internal fun MinifyingFilter.toGLFilter2(): Int {
     return when (this) {
         MinifyingFilter.NEAREST -> GL.NEAREST
         MinifyingFilter.LINEAR -> GL.LINEAR
@@ -468,14 +468,14 @@ internal fun MinifyingFilter.toGLFilter(): Int {
     }
 }
 
-internal fun MagnifyingFilter.toGLFilter(): Int {
+internal fun MagnifyingFilter.toGLFilter2(): Int {
     return when (this) {
         MagnifyingFilter.NEAREST -> GL.NEAREST
         MagnifyingFilter.LINEAR -> GL.LINEAR
     }
 }
 
-internal fun float32Array(vararg floats: Float): Float32Array {
+internal fun float32Array2(vararg floats: Float): Float32Array {
     return Float32Array(floats.toTypedArray())
 }
 
@@ -485,7 +485,7 @@ internal data class ConversionEntry2(val format: ColorFormat, val type: ColorTyp
                                      val glType: Int
 )
 
-internal fun internalFormat(format: ColorFormat, type: ColorType): Triple<Int, Int, Int> {
+internal fun internalFormat2(format: ColorFormat, type: ColorType): Triple<Int, Int, Int> {
     val entries = arrayOf(
         ConversionEntry2(ColorFormat.R, ColorType.UINT8, WebGL2RenderingContext.R8, WebGL2RenderingContext.RED, GL.UNSIGNED_BYTE),
         ConversionEntry2(ColorFormat.RG, ColorType.UINT8, WebGL2RenderingContext.RG8, WebGL2RenderingContext.RG, GL.UNSIGNED_BYTE),
@@ -513,7 +513,7 @@ internal fun internalFormat(format: ColorFormat, type: ColorType): Triple<Int, I
 }
 
 
-internal fun ColorFormat.glFormat(): Int {
+internal fun ColorFormat.glFormat2(): Int {
     return when (this) {
         ColorFormat.R -> GL.LUMINANCE
         ColorFormat.RG -> GL.LUMINANCE_ALPHA
@@ -526,7 +526,7 @@ internal fun ColorFormat.glFormat(): Int {
     }
 }
 
-internal fun ColorType.glType(): Int {
+internal fun ColorType.glType2(): Int {
     return when (this) {
         ColorType.UINT8, ColorType.UINT8_INT -> GL.UNSIGNED_BYTE
         ColorType.SINT8_INT -> GL.BYTE
