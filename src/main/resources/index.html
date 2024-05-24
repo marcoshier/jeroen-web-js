@@ -27,12 +27,19 @@
             background: transparent;
         }
 
-        #buttons {
+        #top-buttons {
+            top: 0;
+        }
+
+        #bottom-buttons {
+            bottom: 0;
+        }
+
+        .button-container {
             position: fixed;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            bottom: 0;
             height: 5vh;
             width: 100vw;
         }
@@ -42,9 +49,14 @@
 <div id="accel" data-beta="0" data-gamma="0" data-mode="1"></div>
 <!--<p id="status"></p>-->
 <div id="trigger" onclick="permission()"></div>
-<div id="buttons">
-    <button onclick="mode1()" type="button">Mode 1</button>
-    <button onclick="mode2()" type="button">Mode 2</button>
+<div id="bottom-buttons" class="button-container">
+    <button type="button">0</button>
+    <button type="button">1</button>
+    <button type="button">2</button>
+    <button type="button">3</button>
+    <button type="button">4</button>
+    <button type="button">5</button>
+    <button type="button">6</button>
 </div>
 <canvas id="openrndr-canvas"></canvas>
 <script src="openrndr-program.js"></script>

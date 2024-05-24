@@ -1,4 +1,6 @@
 import kotlinx.browser.window
+import org.openrndr.animatable.Animatable
+import org.openrndr.animatable.easing.Easing
 import org.openrndr.applicationAsync
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
@@ -8,25 +10,22 @@ import org.openrndr.extra.imageFit.imageFit
 import org.openrndr.math.*
 import org.openrndr.shape.Rectangle
 import org.openrndr.webgl.ColorBufferWebGLCors
-import org.w3c.dom.HTMLCanvasElement
-import org.w3c.dom.Image
-import org.w3c.dom.get
+import org.w3c.dom.*
 import kotlin.math.pow
 
+val n = 15
 
 suspend fun main() {
     applicationAsync {
 
-        val windowRef = window
         //val statusElement = windowRef.document.getElementById("status")!!
 
+        val windowRef = window
+        val canvas = windowRef.document.getElementsByTagName("canvas")[0] as HTMLCanvasElement
+        val ctx = canvas.getContext("webgl2") as WebGL2RenderingContext
 
         program {
-            val canvas = windowRef.document.getElementsByTagName("canvas")[0] as HTMLCanvasElement
-            val ctx = canvas.getContext("webgl2") as WebGL2RenderingContext
-            console.log("context $ctx")
-
-            val imgs = (0..14).map { ColorBufferWebGLCors.fromUrlSuspend(ctx, "images/$it.jpg")}
+            val imgs = (0 until n).map { ColorBufferWebGLCors.fromUrlSuspend(ctx, "images/$it.jpg")}
 
             val accelerometer = object {
                 var beta = 0.0
@@ -39,15 +38,14 @@ suspend fun main() {
                     }
             }
 
-            val rectangles = (0..14).map {
+            val rectangles = (0 until n).map {
                 drawer.bounds.scaledBy(0.9.pow(it))
             }
 
-            var currentMode = 1
-
+            var currentMode: Int
             var movingRectangles = rectangles
             var cidx = -1
-            var mousePos = Vector2.ZERO
+            var mousePos: Vector2
             mouse.buttonDown.listen {
                 //statusElement.innerHTML = "DOWN"
                 mousePos = it.position
@@ -56,8 +54,41 @@ suspend fun main() {
                 cidx = targetRect?.index ?: -1
             }
 
+            var state = object: Animatable() {
+                var currentAnim = 0
+                    set(value) {
+                        if (field != value) {
+                            field = value
+                            playhead = 0.0
+                            pulse()
+                        }
+                    }
+                var playhead = 0.0
 
-            //val font = loadFont("data/fonts/default.otf", 25.0)
+                fun pulse() {
+                    cancel()
+                    ::playhead.animate(1.0, 2500, Easing.CubicInOut)
+                }
+            }
+
+            var functions = listOf(
+                ::function0,
+                ::function1,
+                ::function2,
+                ::function3,
+                ::function4,
+                ::function5,
+                ::function7
+            )
+
+            windowRef.document.getElementById("bottom-buttons")!!.children.asList().forEachIndexed { i, it ->
+                (it as HTMLButtonElement).addEventListener("click", {
+                    it.stopPropagation()
+                    state.currentAnim = i
+                })
+            }
+
+            state.pulse()
 
             val p = Perturb().apply {
                 this.gain = 0.01
@@ -70,6 +101,7 @@ suspend fun main() {
                 }
             }
             extend {
+                state.updateAnimation()
 
                 p.phase = seconds * 0.03
 
@@ -105,16 +137,8 @@ suspend fun main() {
                 drawer.fill = ColorRGBa.WHITE
                 if (currentMode == 1) {
                     for ((i, mrect) in movingRectangles.withIndex()) {
-                        drawer.fill = if(cidx == i) ColorRGBa.RED else ColorRGBa.WHITE
+                        drawer.fill = ColorRGBa.WHITE.mix(ColorRGBa.RED, functions[state.currentAnim](state.playhead)[i])
                         drawer.rectangle(mrect)
-                        if (i == cidx) drawer.imageFit(imgs[i], mrect)
-                        drawer.shadeStyle = null
-                    }
-                }
-                if (currentMode == 2)  {
-                    for ((i, mrect) in movingRectangles.withIndex()) {
-                        drawer.fill = if(cidx == i) ColorRGBa.RED else ColorRGBa.WHITE
-                        drawer.imageFit(imgs[i], mrect)
                         drawer.shadeStyle = null
                     }
                 }
